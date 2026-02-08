@@ -1,0 +1,77 @@
+
+
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-spoken:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm --prefix spoken ci
+    - run: npm --prefix spoken run build
+    - run: npm --prefix spoken run test
+    
+  build-webapp:
+
+    runs-on: ubuntu-latest
+    
+    needs: [build-spoken]
+    
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Build Dep. Spoken
+      run: |
+        npm --prefix spoken ci
+        npm --prefix spoken run build
+    - name: Build
+      run: |
+        npm --prefix webapp ci
+        ls spoken/dist
+        npm --prefix webapp run build-only
+    - name: Test
+      run: npm --prefix webapp run test
+      
+      
+  build-vscode-extension:
+
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Build
+      run: |
+        npm --prefix spoken-vscode-driver ci
+    - name: Test
+      run: npm --prefix spoken-vscode-driver run test
